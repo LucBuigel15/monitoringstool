@@ -1,5 +1,0 @@
-create or replace view public.responses_stats as
-select
-  count(*) as total_responses,
-  count(distinct submission_uuid) as total_submissions
-from public.responses;
