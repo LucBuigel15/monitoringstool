@@ -30,6 +30,7 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.4",
     "recharts": "^3.4.1",
+    "framer-motion": "^11.0.0",
     "uuid": "^11.0.3"
     ,
     "serverless-http": "^3.0.0"

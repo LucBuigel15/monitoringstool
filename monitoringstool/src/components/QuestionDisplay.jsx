@@ -1,3 +1,4 @@
+import { motion, AnimatePresence } from "framer-motion";
 import beigeFace from "../assets/images/blank.avif";
 import geel from "../assets/images/geel.avif";
 import groen from "../assets/images/groen.avif";
@@ -6,6 +7,12 @@ import rood from "../assets/images/rood.avif";
 import { smileys as SMILEYS, numbers } from "../constants/ratings";
 
 const imageByKey = { rood, beige: beigeFace, geel, lichtgroen, groen };
+
+const variants = {
+  initial: { opacity: 0, x: 50 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -50 },
+};
 
 export default function QuestionDisplay({
   question,
@@ -24,7 +31,16 @@ export default function QuestionDisplay({
   const items = displayMode === "numbers" ? numbers : SMILEYS;
 
   return (
-    <div className="w-full max-w-4xl text-center px-5 sm:px-10 py-5 bg-transparent rounded-[32px]">
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={question?.uuid || index}
+        variants={variants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="w-full max-w-4xl text-center px-5 sm:px-10 py-5 bg-transparent rounded-[32px]"
+      >
       <p className="text-3xl font-semibold text-white mb-5">Vraag {index}</p>
       <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 leading-snug">
         {question.title}
@@ -82,6 +98,7 @@ export default function QuestionDisplay({
           ))}
         </div>
       )}
-    </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
