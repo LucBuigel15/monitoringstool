@@ -1,26 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { TOTP } from "otpauth";
 
 const AUTH_KEY = "survey_authenticated";
-const TOTP_KEY = "survey_totp_verified";
 const PASSWORD_KEY = "survey_password";
 const ATTEMPTS_KEY = "survey_login_attempts";
 const LOCKOUT_KEY = "survey_lockout_until";
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 5 * 60 * 1000;
+const MIN_PASSWORD_LENGTH = 6;
 
 export default function PasswordGate({ children }) {
-  const [step, setStep] = useState("password");
   const [password, setPassword] = useState("");
-  const [totpCode, setTotpCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
-  const [totpError, setTotpError] = useState(false);
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
 
-  const totpEnabled = localStorage.getItem("2fa_enabled") === "true";
-  const totpSecret = localStorage.getItem("2fa_secret") || "";
   const savedPassword = localStorage.getItem(PASSWORD_KEY);
   const defaultPassword = import.meta.env.VITE_ACCESS_PASSWORD || "monitoring2026";
   const activePassword = savedPassword || defaultPassword;
@@ -76,11 +70,7 @@ export default function PasswordGate({ children }) {
     if (password === activePassword) {
       setPasswordError(false);
       sessionStorage.removeItem(ATTEMPTS_KEY);
-      if (totpEnabled && totpSecret) {
-        setStep("totp");
-      } else {
-        setAuthenticated();
-      }
+      setAuthenticated();
     } else {
       setPasswordError(true);
       setPassword("");
@@ -88,23 +78,9 @@ export default function PasswordGate({ children }) {
     }
   };
 
-  const handleTotpSubmit = (e) => {
-    e.preventDefault();
-    if (verifyTotp(totpCode)) {
-      setTotpError(false);
-      setAuthenticated();
-    } else {
-      setTotpError(true);
-      setTotpCode("");
-    }
-  };
-
   const setAuthenticated = () => {
     try {
       sessionStorage.setItem(AUTH_KEY, "true");
-      if (totpEnabled) {
-        sessionStorage.setItem(TOTP_KEY, "true");
-      }
     } catch (_e) {
       // Silently fail
     }
@@ -114,34 +90,12 @@ export default function PasswordGate({ children }) {
   const isAuthenticated = () => {
     try {
       if (sessionStorage.getItem(AUTH_KEY) === "true") {
-        if (totpEnabled) {
-          return sessionStorage.getItem(TOTP_KEY) === "true";
-        }
         return true;
       }
     } catch (_e) {
       // Silently fail
     }
     return false;
-  };
-
-  const verifyTotp = (token) => {
-    if (!totpSecret) return false;
-    try {
-      const totp = new TOTP({
-        issuer: "Monitoringstool",
-        label: "User",
-        algorithm: "SHA1",
-        digits: 6,
-        period: 30,
-        secret: totpSecret,
-      });
-      const delta = totp.validate({ token, window: 1 });
-      return delta !== null;
-    } catch (e) {
-      console.error("TOTP verification error:", e);
-      return false;
-    }
   };
 
   const formatTime = (seconds) => {
@@ -155,6 +109,7 @@ export default function PasswordGate({ children }) {
   }
 
   const attempts = getAttempts();
+  const attemptsLeft = MAX_ATTEMPTS - attempts;
   const isLocked = lockoutRemaining > 0;
 
   return (
@@ -167,9 +122,7 @@ export default function PasswordGate({ children }) {
         />
         <h1 className="text-2xl font-bold text-white mb-2">Toegang vereist</h1>
         <p className="text-teal-200 mb-6">
-          {step === "password" 
-            ? "Voer het wachtwoord in om de vragenlijst te starten." 
-            : "Voer de code uit je authenticator app in."}
+         Voer het wachtwoord in om de vragenlijst te starten.
         </p>
 
         {isLocked ? (
@@ -177,7 +130,7 @@ export default function PasswordGate({ children }) {
             <p className="font-semibold mb-2">Te veel pogingen</p>
             <p>Probeer het over {formatTime(lockoutRemaining)} opnieuw</p>
           </div>
-        ) : step === "password" ? (
+        ) : (
           <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-4">
             <div className="relative">
               <input
@@ -201,52 +154,20 @@ export default function PasswordGate({ children }) {
             </div>
             {passwordError && (
               <p className="text-red-300 text-sm">
-                Verkeerd wachtwoord ({MAX_ATTEMPTS - attempts} pogingen over)
+                Verkeerd wachtwoord - nog {attemptsLeft} poging(en)
               </p>
             )}
             <button
               type="submit"
               className="bg-yellow-400 text-teal-900 font-bold px-6 py-3 rounded-lg hover:bg-yellow-300 transition"
             >
-              {totpEnabled ? "Volgende" : "Inloggen"}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleTotpSubmit} className="flex flex-col gap-4">
-            <input
-              type="text"
-              value={totpCode}
-              onChange={(e) => {
-                setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                setTotpError(false);
-              }}
-              placeholder="000000"
-              className="w-full p-3 rounded-lg text-gray-800 font-semibold text-center text-2xl tracking-widest"
-              maxLength={6}
-              autoFocus
-            />
-            {totpError && (
-              <p className="text-red-300 text-sm">Verkeerde code. Probeer opnieuw.</p>
-            )}
-            <button
-              type="submit"
-              className="bg-yellow-400 text-teal-900 font-bold px-6 py-3 rounded-lg hover:bg-yellow-300 transition"
-            >
-              Verifieer
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStep("password");
-                setTotpCode("");
-                setTotpError(false);
-              }}
-              className="text-teal-200 hover:text-white text-sm transition"
-            >
-              Terug naar wachtwoord
+              Inloggen
             </button>
           </form>
         )}
+        <p className="text-teal-300/60 text-xs mt-4">
+          Let op: Na 5 foute pogingen is {LOCKOUT_DURATION/60000} min geblokkeerd
+        </p>
       </div>
     </div>
   );
