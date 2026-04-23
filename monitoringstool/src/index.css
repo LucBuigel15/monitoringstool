@@ -2,19 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .animate-slide-in {
-    animation: slideIn 0.4s ease-out forwards;
+.question-container {
+  animation: slideIn 0.4s ease-out forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(80px);
   }
-  
-  @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: translateX(100px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
