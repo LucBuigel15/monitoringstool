@@ -1,6 +1,6 @@
 # Monitoringstool
 
-Een vragenlijst-tool voor **kindbezoeken** bij detentiecentra in Nederland. Meet tevredenheid en welzijn van kinderen tijdens bezoeken.
+Een vragenlijst-tool voor kindbezoeken bij detentiecentra in Nederland. Meet tevredenheid en welzijn van kinderen tijdens bezoeken.
 
 ---
 
@@ -22,13 +22,13 @@ Een vragenlijst-tool voor **kindbezoeken** bij detentiecentra in Nederland. Meet
 
 | Feature | Beschrijving |
 |---------|-------------|
-| 🔐 **2FA** | QR code authenticatie (localStorage) |
-| 🔑 **Password** | Wachtwoord instelbaar via admin |
-| 👶 **Leeftijdscheiding** | <12: smileys, 12+: cijfers 1-5 |
-| 📋 **Survey Types** | Regulier, Ouder-Kind, Extra Vader-Kind |
-| 📊 **Admin Dashboard** | Statistics & responses |
-| ⏭️ **Auto-advance** | Automatisch naar volgende vraag |
-| 💾 **State persistence** | Survey blijft behouden bij refresh |
+| 2FA | QR code authenticatie (localStorage) |
+| Password | Wachtwoord instelbaar via admin |
+| Leeftijdscheiding | <12: smileys, 12+: cijfers 1-5 |
+| Survey Types | Regulier, Ouder-Kind, Extra Vader-Kind |
+| Admin Dashboard | Statistics en responses |
+| Auto-advance | Automatisch naar volgende vraag |
+| State persistence | Survey blijft behouden bij refresh |
 
 ---
 
@@ -77,8 +77,8 @@ monitoringstool/
 ├── src/
 │   ├── components/       # React components
 │   ├── pages/            # Admin, Survey
-│   ├── services/         # API & Auth
-│   └── constants/       # Vragen, ratings
+│   ├── services/         # API en Auth
+│   └── constants/        # Vragen, ratings
 ├── supabase/
 │   └── schema.sql        # Database schema
 └── docker/               # Docker bestanden
