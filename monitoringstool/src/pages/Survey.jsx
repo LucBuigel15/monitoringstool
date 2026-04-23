@@ -24,6 +24,7 @@ export default function Survey() {
   const [location, setLocation] = useState(null);
   const [showStart, setShowStart] = useState(true);
   const [useNumbers, setUseNumbers] = useState(false);
+  const [autoAdvance, setAutoAdvance] = useState(true);
 
   useEffect(() => {
     const saved = localStorage.getItem("survey_state");
@@ -88,6 +89,12 @@ export default function Survey() {
 
   const handleChange = (questionUuid, value) => {
     setAnswers((prev) => ({ ...prev, [questionUuid]: value }));
+    if (autoAdvance && currentQuestionIndex < questions.length - 1) {
+      setTimeout(() => {
+        setCurrentQuestionIndex((prev) => prev + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 300);
+    }
   };
 
   const handleNext = () => {

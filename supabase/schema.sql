@@ -87,6 +87,14 @@ create table if not exists public.submissions (
   created_at timestamptz default now()
 );
 
+-- ========================================
+-- VRAAG UPDATE: Change 'ruimte' to 'plek'
+-- ========================================
+UPDATE public.questions 
+SET title = REPLACE(title, 'ruimte', 'plek'),
+    description = REPLACE(description, 'ruimte', 'plek')
+WHERE title ILIKE '%ruimte%' OR description ILIKE '%ruimte%';
+
 -- Consent question
 do $$
 declare consent_uuid uuid := '00000000-0000-0000-0000-000000000001';
