@@ -8,32 +8,6 @@ import ResponsesTable from "../components/ResponsesTable";
 import { questionsApi, responsesApi } from "../services/api";
 import { getSession, signInWithEmailPassword, signOut } from "../services/auth";
 import { CONSENT_QUESTION_UUID } from "../constants/consent";
-import QRCode from "qrcode";
-import { TOTP } from "otpauth";
-
-function generateSecret() {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-    let result = "";
-    for (let i = 0; i < 16; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
-
-function verifyTotp(code, secret) {
-  if (!secret) return false;
-  try {
-    const totp = new TOTP({
-      issuer: "Monitoringstool",
-      label: "User",
-      algorithm: "SHA1",
-      digits: 6,
-      period: 30,
-      secret: secret,
-    });
-    return totp.validate({ token: code, window: 1 }) !== null;
-  } catch { return false; }
-}
 
 function SortableQuestionItem({ question, onDelete, onEditClick, onSaveEdit, isEditing, editForm, setEditForm }) {
   const { listeners, setNodeRef, transform, transition, setActivatorNodeRef } = useSortable({
@@ -181,18 +155,11 @@ export default function Admin() {
   const [statsData, setStatsData] = useState([]);
   const [globalStats, setGlobalStats] = useState([]); // Nieuw: Altijd de 'Alle locaties' stats
   const [locationFilter, setLocationFilter] = useState("");
-  const [showSetupModal, setShowSetupModal] = useState(false);
-  const [showSessionsModal, setShowSessionsModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
-  const [qrCodeUrl, setQrCodeUrl] = useState("");
-  const [verifyCode, setVerifyCode] = useState("");
-  const [setupError, setSetupError] = useState("");
 
-  const twoFaEnabled = localStorage.getItem("2fa_enabled") === "true";
   const currentPasswordValue = localStorage.getItem("survey_password") || import.meta.env.VITE_ACCESS_PASSWORD || "";
-  const sessions = JSON.parse(localStorage.getItem("2fa_sessions") || "[]");
 
   // Simple admin allow-list using env: VITE_ADMIN_EMAILS="a@b.com,c@d.com"
   const allowedEmails = String(import.meta.env.VITE_ADMIN_EMAILS || "")
@@ -252,70 +219,6 @@ export default function Admin() {
     } finally {
       setStatsLoading(false);
     }
-  };
-
-  // Sessions management
-  useEffect(() => {
-    const sessions = JSON.parse(localStorage.getItem("2fa_sessions") || "[]");
-    if (!sessions.find(s => s.id === localStorage.getItem("2fa_session_id"))) {
-      sessions.unshift({
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-        timestamp: Date.now(),
-        name: navigator.userAgent.slice(0, 50) + "...",
-      });
-      localStorage.setItem("2fa_session_id", sessions[0].id);
-      localStorage.setItem("2fa_sessions", JSON.stringify(sessions));
-    }
-  }, []);
-
-  const handleEnable2Fa = async () => {
-    const secret = generateSecret();
-    const issuer = encodeURIComponent("Monitoringstool");
-    const account = encodeURIComponent(userEmail);
-    const otpauthUrl = `otpauth://totp/${issuer}:${account}?secret=${secret}&issuer=${issuer}`;
-
-    try {
-      const url = await QRCode.toDataURL(otpauthUrl, { width: 200, margin: 1 });
-      localStorage.setItem("2fa_secret", secret);
-      setQrCodeUrl(url);
-      setShowSetupModal(true);
-    } catch (e) {
-      console.error("QR generation failed", e);
-    }
-  };
-
-  const handleVerifyAndEnable = () => {
-    const secret = localStorage.getItem("2fa_secret");
-    if (verifyTotp(verifyCode, secret)) {
-      localStorage.setItem("2fa_enabled", "true");
-      setShowSetupModal(false);
-      setQrCodeUrl("");
-      setVerifyCode("");
-      setSetupError("");
-      alert("2FA is ingeschakeld!");
-    } else {
-      setSetupError("Verkeerde code. Probeer opnieuw.");
-      setVerifyCode("");
-    }
-  };
-
-  const handleDisable2Fa = () => {
-    localStorage.setItem("2fa_enabled", "false");
-    localStorage.removeItem("2fa_secret");
-    setShowSetupModal(false);
-    setVerifyCode("");
-    alert("2FA is uitgeschakeld!");
-  };
-
-  const handleRemoveSession = (sessionId) => {
-    const updated = sessions.filter(s => s.id !== sessionId);
-    localStorage.setItem("2fa_sessions", JSON.stringify(updated));
-    setShowSessionsModal(true);
-  };
-
-  const handleRemoveAllSessions = () => {
-    localStorage.setItem("2fa_sessions", JSON.stringify([]));
-    setShowSessionsModal(true);
   };
 
   const handleSavePassword = () => {
@@ -498,54 +401,13 @@ export default function Admin() {
         </div>
       </div>
 
-      {error && (
+{error && (
         <div className="bg-red-500 text-white p-3 rounded mb-4">
           {error}
         </div>
       )}
 
       <div className="bg-teal-700 p-4 rounded-lg mb-6">
-                <h2 className="text-lg font-semibold mb-3">Twee-Factor Authenticatie (2FA)</h2>
-                <div className="flex items-center gap-4 flex-wrap">
-                    <div className="flex items-center gap-2">
-                        <span
-                            className={`px-3 py-1 rounded-full text-sm font-semibold ${twoFaEnabled ? "bg-green-500" : "bg-red-500"}`}
-                        >
-                            {twoFaEnabled ? "Ingeschakeld" : "Uitgeschakeld"}
-                        </span>
-                    </div>
-                    {twoFaEnabled ? (
-                        <>
-                            <button
-                                className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded font-semibold text-sm"
-                                onClick={handleDisable2Fa}
-                            >
-                                Uitschakelen
-                            </button>
-                            <button
-                                className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded font-semibold text-sm"
-                                onClick={() => setShowSessionsModal(true)}
-                            >
-                                Apparaten bekijken ({sessions.length})
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded font-semibold text-sm"
-                            onClick={handleEnable2Fa}
-                        >
-                            Inschakelen
-                        </button>
-                    )}
-                </div>
-                <p className="text-sm text-gray-300 mt-2">
-                    {twoFaEnabled
-                        ? "Gebruik je authenticator app om in te loggen."
-                        : "Beveilig de vragenlijst toegang met een authenticator app."}
-                </p>
-            </div>
-
-            <div className="bg-teal-700 p-4 rounded-lg mb-6">
                 <h2 className="text-lg font-semibold mb-3">Wachtwoord wijzigen</h2>
                 {localStorage.getItem("survey_password") || import.meta.env.VITE_ACCESS_PASSWORD ? (
                     <>
@@ -571,52 +433,6 @@ export default function Admin() {
                     </div>
                 )}
             </div>
-
-            {showSessionsModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-teal-700 p-6 rounded-lg max-w-md w-full">
-                        <h3 className="text-xl font-bold mb-4">Ingelogde apparaten</h3>
-                        {sessions.length === 0 ? (
-                            <p className="text-gray-200">Geen apparaten gevonden.</p>
-                        ) : (
-                            <ul className="space-y-2 mb-4">
-                                {sessions.map((session) => (
-                                    <li key={session.id} className="flex items-center justify-between bg-teal-800 p-3 rounded">
-                                        <div>
-                                            <p className="text-sm font-semibold">{session.name}</p>
-                                            <p className="text-xs text-gray-400">
-                                                {new Date(session.timestamp).toLocaleString()}
-                                            </p>
-                                        </div>
-                                        <button
-                                            className="text-red-400 hover:text-red-300 text-sm"
-                                            onClick={() => handleRemoveSession(session.id)}
-                                        >
-                                            Verwijder
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                        <div className="flex gap-3">
-                            <button
-                                className="flex-1 bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded font-semibold"
-                                onClick={() => setShowSessionsModal(false)}
-                            >
-                                Sluiten
-                            </button>
-                            {sessions.length > 0 && (
-                                <button
-                                    className="flex-1 bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-semibold"
-                                    onClick={handleRemoveAllSessions}
-                                >
-                                    Alles verwijderen
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {showPasswordModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -661,52 +477,6 @@ export default function Admin() {
                                     Opslaan
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {showSetupModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-teal-700 p-6 rounded-lg max-w-md w-full">
-                        <h3 className="text-xl font-bold mb-4">
-                            {twoFaEnabled ? "2FA Uitschakelen" : "2FA Inschakelen"}
-                        </h3>
-                        {!twoFaEnabled && qrCodeUrl && (
-                            <div className="text-center mb-4">
-                                <img src={qrCodeUrl} alt="QR Code" className="mx-auto mb-2 rounded" />
-                                <p className="text-sm text-gray-200">Scan deze QR code met je authenticator app.</p>
-                            </div>
-                        )}
-                        <input
-                            type="text"
-                            value={verifyCode}
-                            onChange={(e) => {
-                                setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                                setSetupError("");
-                            }}
-                            placeholder="000000"
-                            className="w-full p-3 rounded text-gray-800 font-semibold text-center text-2xl tracking-widest mb-3"
-                            maxLength={6}
-                        />
-                        {setupError && <p className="text-red-300 text-sm mb-3">{setupError}</p>}
-                        <div className="flex gap-3">
-                            <button
-                                className="flex-1 bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded font-semibold"
-                                onClick={() => {
-                                    setShowSetupModal(false);
-                                    setQrCodeUrl("");
-                                    setVerifyCode("");
-                                }}
-                            >
-                                Annuleren
-                            </button>
-                            <button
-                                className={`flex-1 px-4 py-2 rounded font-semibold ${twoFaEnabled ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"}`}
-                                onClick={twoFaEnabled ? handleDisable2Fa : handleVerifyAndEnable}
-                            >
-                                {twoFaEnabled ? "Uitschakelen" : "Activeren"}
-                            </button>
                         </div>
                     </div>
                 </div>
