@@ -23,6 +23,7 @@ export default function Survey() {
   const [mode, setMode] = useState("regular");
   const [location, setLocation] = useState(null);
   const [showStart, setShowStart] = useState(true);
+  const [useNumbers, setUseNumbers] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("survey_state");
@@ -34,6 +35,7 @@ export default function Survey() {
         setCurrentQuestionIndex(state.currentQuestionIndex || 0);
         setMode(state.mode);
         setLocation(state.location);
+        setUseNumbers(state.useNumbers || false);
         if (state.location && state.mode) {
           setShowStart(false);
         }
@@ -48,10 +50,11 @@ export default function Survey() {
         consent,
         currentQuestionIndex,
         mode,
-        location
+        location,
+        useNumbers
       }));
     }
-  }, [answers, consent, currentQuestionIndex, mode, location, showStart]);
+  }, [answers, consent, currentQuestionIndex, mode, location, showStart, useNumbers]);
 
   const clearSurveyState = () => {
     localStorage.removeItem("survey_state");
@@ -59,6 +62,7 @@ export default function Survey() {
     setConsent(null);
     setCurrentQuestionIndex(0);
     setShowStart(true);
+    setUseNumbers(false);
   };
 
   useEffect(() => {
@@ -259,6 +263,7 @@ export default function Survey() {
             name={`smiley-${currentQ.uuid}`}
             value={answers[currentQ.uuid] || null}
             onChange={(val) => handleChange(currentQ.uuid, val)}
+            displayMode={useNumbers ? "numbers" : "smileys"}
           />
 
           <div className="mt-8 flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
@@ -298,9 +303,10 @@ export default function Survey() {
     <>
       {showStart ? (
         <StartScreen
-          onStart={(selectedMode, selectedLocation) => {
+          onStart={(selectedMode, selectedLocation, selectedUseNumbers) => {
             setMode(selectedMode);
             setLocation(selectedLocation);
+            setUseNumbers(selectedUseNumbers);
             setShowStart(false);
           }}
         />
