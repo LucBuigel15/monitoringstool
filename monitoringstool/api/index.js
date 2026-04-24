@@ -1,5 +1,5 @@
 // Vercel API route - serve Express as serverless function
-import app from './server/server.js';
+import app from '../server/server.js';
 
 export const config = {
   api: {
