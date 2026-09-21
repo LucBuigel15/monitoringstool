@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Mars, Venus } from "lucide-react";
+import { Mars, Venus, Eye, EyeOff } from "lucide-react";
 import QuestionForm from "../components/QuestionForm";
 import StatsSection from "../components/StatsSection";
 import ResponsesTable from "../components/ResponsesTable";
@@ -178,6 +178,7 @@ export default function Admin() {
     const [showTypeEditModal, setShowTypeEditModal] = useState(false);
     const [emailInput, setEmailInput] = useState("");
     const [passwordInput, setPasswordInput] = useState("");
+    const [showAdminPassword, setShowAdminPassword] = useState(false);
     const [authError, setAuthError] = useState(null);
     const [userEmail, setUserEmail] = useState("");
 
@@ -474,13 +475,22 @@ export default function Admin() {
                                 placeholder="jij@bedrijf.nl"
                                 className="w-full p-2 rounded text-gray-900 mb-3"
                             />
-                            <input
-                                type="password"
-                                value={passwordInput}
-                                onChange={(e) => setPasswordInput(e.target.value)}
-                                placeholder="Wachtwoord"
-                                className="w-full p-2 rounded text-gray-900 mb-3"
-                            />
+                            <div className="relative mb-3">
+                                <input
+                                    type={showAdminPassword ? "text" : "password"}
+                                    value={passwordInput}
+                                    onChange={(e) => setPasswordInput(e.target.value)}
+                                    placeholder="Wachtwoord"
+                                    className="w-full p-2 pr-10 rounded text-gray-900"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdminPassword(!showAdminPassword)}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                >
+                                    {showAdminPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
                             {authError && <div className="bg-red-500 text-white p-2 rounded mb-3">{authError}</div>}
                             <button
                                 className="bg-yellow-400 text-teal-900 font-semibold px-4 py-2 rounded hover:bg-yellow-300 w-full"
